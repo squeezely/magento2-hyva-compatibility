@@ -1,0 +1,113 @@
+<?php
+/* @var Magento\Framework\View\Element\Template $block */
+/* @var Squeezely\Plugin\ViewModel\PixelManager $viewModel */
+$viewModel = $block->getViewModel();
+
+// Additional View Model
+$viewModelPage = $block->getViewModelPage();
+?>
+<?php if ($viewModel->isEnabled()): ?>
+    <!-- Squeezely Pixel  -->
+    <script>
+        fetch('<?= $viewModel->getJsLink(); ?>').then((resp) => {
+            const delay = 500;
+
+            if (resp.status === 200) {
+                let script = document.createElement("script");
+                script.setAttribute("type", "text/javascript");
+                script.setAttribute("src", resp.url);
+                document.body.appendChild(script);
+
+                script.onload = () => {
+                    setTimeout(() => { Squeezely.init(); }, delay);
+                }
+            }
+        });
+
+        const Squeezely = {
+            init() {
+                window._sqzl = _sqzl || [];
+
+                this.pageView();
+                this.updateCart();
+
+                // Init Squeezely from BE side
+                <?php if($viewModelPage): ?>
+                    this.pushPageEvent(`<?= htmlentities($viewModelPage->getDataScript()) ?>`);
+                <?php endif; ?>
+
+                window.addEventListener('private-content-loaded', (event) => {
+                    const oldCartData = JSON.parse(localStorage.getItem('mage-cache-storage')).cart;
+                    const newCartData = event.detail.data.cart;
+
+                    newCartData.summary_count < oldCartData.summary_count
+                        ? this.pushRemoveFromCart(oldCartData.items, newCartData.items)
+                        : this.pushAddToCart(oldCartData.items, newCartData.items);
+                });
+            },
+
+            pageView() {
+                window._sqzl.push({"event": "PageView"});
+            },
+
+            updateCart() {
+                if (!sessionStorage.getItem("new-session")) {
+                    window._sqzl.push({
+                        "event": "UpdateCart",
+                        "set_cart": true,
+                        "products": []
+                    });
+
+                    sessionStorage.setItem("new-session", "true");
+                } 
+            },
+
+            pushAddToCart(itemsOld, itemsNew) {
+                let productData;
+
+                // If add new product
+                if (itemsNew.length !== itemsOld.length) {
+                    productData = this.createPushAddData(itemsNew[0], itemsNew[0].qty);
+                } else {
+                    // If product added but existing
+                    for(let i = 0; i < itemsNew.length; i++) {
+                        if (itemsNew[i].qty !== itemsOld[i].qty) {
+                            productData = this.createPushAddData(itemsNew[i], itemsNew[i].qty - itemsOld[i].qty);
+                        }
+                    }
+                }
+
+                window._sqzl.push({
+                    "event": "AddToCart",
+                    "products": productData,
+                });
+            },
+
+            pushRemoveFromCart(itemsOld, itemsNew) {
+                itemsOld.forEach((obj) => {
+                    if (itemsNew.findIndex((el) => el.product_sku === obj.product_sku) === -1) {
+                        window._sqzl.push({
+                            "event": "RemoveFromCart",
+                            "products": [{ "id":  obj.product_sku }],
+                        });
+                    }
+                });
+            },
+
+            pushPageEvent(html) {
+                const data = JSON.parse(html.match(/(?<=\()(.*?)(?=\))/gi)[0].replaceAll('&quot;', '"'));
+                window._sqzl.push(data);
+            },
+
+            createPushAddData(data, qty) {
+                return {
+                    "id": data.product_sku,
+                    "name": data.product_name,
+                    "price": data.product_price_value.incl_tax ? +data.product_price_value.incl_tax : data.product_price_value,
+                    "quantity": qty,
+                }
+            }
+        }
+    </script>
+    <!-- End Squeezely Pixel -->
+<?php endif;?>

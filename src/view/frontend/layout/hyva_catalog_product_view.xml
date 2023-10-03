@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+
+        <referenceBlock name="squeezely.productManager" remove="true" />
+
+        <referenceBlock name="squeezely.hyva.pixelManager">
+            <arguments>
+                <argument name="view_model" xsi:type="object">Squeezely\Plugin\ViewModel\PixelManager</argument>
+                <argument name="view_model_page" xsi:type="object">Squeezely\Plugin\ViewModel\Product</argument>
+            </arguments>
+        </referenceBlock>
+
+    </body>
+</page>
