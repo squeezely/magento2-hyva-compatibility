@@ -26,7 +26,8 @@ $viewModelPage = $block->getViewModelPage();
 
         const Squeezely = {
             init() {
-                window._sqzl = _sqzl || [];
+                // window._sqzl = _sqzl || [];
+                window._sqzl = (typeof _sqzl !== 'undefined' && _sqzl) ? _sqzl : []; 
 
                 this.pageView();
                 this.updateCart();
