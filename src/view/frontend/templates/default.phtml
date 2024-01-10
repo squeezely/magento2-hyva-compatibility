@@ -96,8 +96,9 @@ $viewModelPage = $block->getViewModelPage();
             },
 
             pushPageEvent(html) {
-                const data = JSON.parse(html.match(/(?<=\()(.*?)(?=\))/gi)[0].replaceAll('&quot;', '"'));
-                window._sqzl.push(data);
+                const mutation = html.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                const data = mutation.match(/\([^]*}\)/gi)[0].slice(1, -1);
+                window._sqzl.push(JSON.parse(data));
             },
 
             createPushAddData(data, qty) {
